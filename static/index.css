@@ -1,0 +1,56 @@
+#Header
+/* Style the header with a grey background and some padding */
+.header{}
+.header {
+  background-color: white;
+  padding: 25px 10px;
+}
+/* Style the header links */
+.header a {
+  float: left;
+  color: black;
+  text-align: center;
+  padding: 10px;
+  text-decoration: none;
+  font-size: 15px;
+  line-height: 0px;
+  border-radius: 4px;
+    text-decoration: none
+}
+
+@font-face { font-family: Billabong; src: url('Billabong.ttf'); }
+/* Style the logo link (notice that we set the same value of line-height and font-size to prevent the header to increase when the font gets bigger */
+.header a.logo {
+  font-size: 40px;
+  font-weight: normal;
+  font-family: 'Billabong',sans-serif;
+  margin-left: 15%;
+  letter-spacing: 1px;
+  font-weight: 100;
+    text-decoration: none
+}
+
+
+
+
+#Body
+
+body{
+  background-color: #C0C0C0;
+}
+
+.boxForLogin {
+  position:absolute;
+  top:20%;
+  left:43%;
+  margin-top:-100px; /* this is half the height of your div*/
+    margin-left:-100px; /*this is half of width of your div*/
+
+width: 200px;
+height: 200px;
+padding: 30px;
+border: 1px solid gray;
+margin: 0;
+}
+
+}

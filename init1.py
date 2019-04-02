@@ -36,27 +36,49 @@ def index():
 @app.route("/home")
 @login_required
 def home():
-    return render_template("home.html", username=session["username"])
-
-@app.route("/upload", methods=["GET"])
-@login_required
-def upload():
-    return render_template("upload.html")
-
-@app.route("/images", methods=["GET"])
-@login_required
-def images():
-    query = "SELECT * FROM photo"
-    with connection.cursor() as cursor:
-        cursor.execute(query)
+    user = session['username']
+    cursor = connection.cursor();
+    query = 'SELECT timestamp, filePath FROM Photo WHERE photoOwner = %s ORDER BY timestamp DESC'
+    cursor.execute(query, (user))
     data = cursor.fetchall()
-    return render_template("images.html", images=data)
+    cursor.close()
+    return render_template('home.html', username=user, posts=data)
+
+# @app.route("/upload", methods=["GET"])
+# @login_required
+# def upload():
+#     return render_template("upload.html")
+
+# @app.route("/images", methods=["GET"])
+# @login_required
+# def images():
+#     query = "SELECT * FROM photo"
+#     with connection.cursor() as cursor:
+#         cursor.execute(query)
+#     data = cursor.fetchall()
+#     return render_template("images.html", images=data)
 
 @app.route("/image/<image_name>", methods=["GET"])
 def image(image_name):
     image_location = os.path.join(IMAGES_DIR, image_name)
     if os.path.isfile(image_location):
         return send_file(image_location, mimetype="image/jpg")
+
+
+
+@app.route('/select_blogger')
+@login_required
+def select_blogger():
+    #check that user is logged in
+    #username = session['username']
+    #should throw exception if username not found
+
+    cursor = connection.cursor();
+    query = 'SELECT DISTINCT username FROM Person'
+    cursor.execute(query)
+    data = cursor.fetchall()
+    cursor.close()
+    return render_template('select_blogger.html', user_list=data)
 
 @app.route("/login", methods=["GET"])
 def login():
@@ -88,6 +110,42 @@ def loginAuth():
     error = "An unknown error has occurred. Please try again."
     return render_template("login.html", error=error)
 
+@app.route('/post', methods=['GET', 'POST'])
+def post():
+    # if request.files:
+    #     image_file = request.files.get("imageToUpload", "")
+    #     image_name = image_file.filename
+    #     filepath = os.path.join(IMAGES_DIR, image_name)
+    #     image_file.save(filepath)
+    #     query = "INSERT INTO photo (timestamp, filePath) VALUES (%s, %s)"
+    #     with connection.cursor() as cursor:
+    #         cursor.execute(query, (time.strftime('%Y-%m-%d %H:%M:%S'), image_name))
+    #     message = "Image has been successfully uploaded."
+    #     return render_template("upload.html", message=message)
+    # else:
+    #     message = "Failed to upload image."
+    #     return render_template("upload.html", message=message)
+
+
+    username = session['username']
+    cursor = connection.cursor();
+    blog = request.form['blog']
+    query = 'INSERT INTO Photo (photoID, filepath, photoOwner, timestamp) VALUES(%s, %s, %s, %s)'
+    cursor.execute(query, ('2', blog, username, time.strftime('%Y-%m-%d %H:%M:%S') ))
+    connection.commit()
+    cursor.close()
+    return redirect(url_for('home'))
+
+@app.route('/show_posts', methods=["GET", "POST"])
+def show_posts():
+    poster = request.args['poster']
+    cursor = connection.cursor();
+    query = 'SELECT timestamp, filePath FROM Photo WHERE photoOwner = %s ORDER BY timestamp DESC'
+    cursor.execute(query, poster)
+    data = cursor.fetchall()
+    cursor.close()
+    return render_template('show_posts.html', poster_name=poster, posts=data)
+
 @app.route("/registerAuth", methods=["POST"])
 def registerAuth():
     if request.form:
@@ -100,7 +158,7 @@ def registerAuth():
 
         try:
             with connection.cursor() as cursor:
-                query = "INSERT INTO person (username, password, fname, lname) VALUES (%s, %s, %s, %s)"
+                query = "INSERT INTO Person (username, password, fname, lname) VALUES (%s, %s, %s, %s)"
                 cursor.execute(query, (username, hashedPassword, firstName, lastName))
         except pymysql.err.IntegrityError:
             error = "%s is already taken." % (username)
