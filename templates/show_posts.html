@@ -11,14 +11,23 @@
 
 Here are posts by {{poster_name}}:
 
+
+
+
 <table>
 	<th>Time</th>
-	<th>Post</th>
+	<th>photoOwner</th>
+	<th>PhotoID</th>
+	<th>Caption</th>
+	<th>Photo</th>
 
 {% for line in posts %}
 	<tr>
-		<td>{{line.ts}}</td>
-		<td>{{line.blog_post}}</td>
+		<td>{{line.timestamp}}</td>
+		<td>{{line.photoOwner}}</td>
+		<td>{{line.photoID}}</td>
+		<td>{{line.caption}}</td>
+		<td>{{line.filePath}}</td>
 	</tr>
 {% endfor %}
 </table>

@@ -1,12 +1,26 @@
 <html>
 <head>
+
+	<meta charset="UTF-8">
+		<link href="../static/index.css" rel="stylesheet" type="text/css"/>
+		<link href="https://localhost:5000/index.css" rel="stylesheet" type="text/css"/>
+		<title>David Ho Finstagram</title>
 </head>
+
+
+
 <body>
-<form action="/post" method="POST">
-	<h1>Welcome {{username}}</h1> 
-	<input type="text" name = "blog" placeholder="post" required/> </br>
+<form action="/post" method="POST" enctype="multipart/form-data">
+	<h1>Welcome {{username}}</h1>
+	<input type="file" name="pic" accept="image/*" required>
+	<input type="text" name = "blog" placeholder="comment" required/> </br>
 	<input type="submit" value = Post />
 </form>
+
+<a href="/select_blogger">Select a blogger</a>
+<br>
+<a href="/logout">Logout</a>
+
 
 <style type="text/css">
 	table, th, td{
@@ -14,23 +28,32 @@
 	}
 </style>
 
-Here are your posts:
+Here are posts by {{username}}:
 
 <table>
 	<th>Time</th>
-	<th>Post</th>
+	<th>photoOwner</th>
+	<th>PhotoID</th>
+	<th>Caption</th>
+	<th>Photo Path</th>
+	<th>Photo</th>
 
 {% for line in posts %}
 	<tr>
-		<td>{{line.ts}}</td>
-		<td>{{line.blog_post}}</td>
+		<td>{{line.timestamp}}</td>
+		<td>{{line.photoOwner}}</td>
+		<td>{{line.photoID}}</td>
+		<td>{{line.caption}}</td>
+		<td>{{line.filePath}}</td>
+		<td><img src="/image/{{line.filePath}}" width="300"/></td>
 	</tr>
 {% endfor %}
 </table>
 
-<a href="/select_blogger">Select a blogger</a>
-<br>
-<a href="/logout">Logout</a>
+
+
+
+
 
 </body>
 

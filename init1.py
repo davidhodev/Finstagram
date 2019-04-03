@@ -38,10 +38,11 @@ def index():
 def home():
     user = session['username']
     cursor = connection.cursor();
-    query = 'SELECT timestamp, filePath FROM Photo WHERE photoOwner = %s ORDER BY timestamp DESC'
-    cursor.execute(query, (user))
+    query = 'SELECT * FROM Photo ORDER BY timestamp DESC' #WHERE photoOwner = %s
+    cursor.execute(query)
     data = cursor.fetchall()
     cursor.close()
+    print(data)
     return render_template('home.html', username=user, posts=data)
 
 # @app.route("/upload", methods=["GET"])
@@ -112,35 +113,30 @@ def loginAuth():
 
 @app.route('/post', methods=['GET', 'POST'])
 def post():
-    # if request.files:
-    #     image_file = request.files.get("imageToUpload", "")
-    #     image_name = image_file.filename
-    #     filepath = os.path.join(IMAGES_DIR, image_name)
-    #     image_file.save(filepath)
-    #     query = "INSERT INTO photo (timestamp, filePath) VALUES (%s, %s)"
-    #     with connection.cursor() as cursor:
-    #         cursor.execute(query, (time.strftime('%Y-%m-%d %H:%M:%S'), image_name))
-    #     message = "Image has been successfully uploaded."
-    #     return render_template("upload.html", message=message)
-    # else:
-    #     message = "Failed to upload image."
-    #     return render_template("upload.html", message=message)
-
-
     username = session['username']
     cursor = connection.cursor();
     blog = request.form['blog']
-    query = 'INSERT INTO Photo (photoID, filepath, photoOwner, timestamp) VALUES(%s, %s, %s, %s)'
-    cursor.execute(query, ('2', blog, username, time.strftime('%Y-%m-%d %H:%M:%S') ))
+    image_file = request.files.get("pic", "")
+    print(image_file)
+    image_name = image_file.filename
+    filepath = os.path.join(IMAGES_DIR, image_name)
+    image_file.save(filepath)
+
+
+    query = 'INSERT INTO Photo (caption, filePath, photoOwner, timestamp) VALUES(%s, %s, %s, %s)'
+    cursor.execute(query, (blog, image_name, username, time.strftime('%Y-%m-%d %H:%M:%S') ))
     connection.commit()
     cursor.close()
     return redirect(url_for('home'))
 
 @app.route('/show_posts', methods=["GET", "POST"])
 def show_posts():
+
+
+
     poster = request.args['poster']
     cursor = connection.cursor();
-    query = 'SELECT timestamp, filePath FROM Photo WHERE photoOwner = %s ORDER BY timestamp DESC'
+    query = 'SELECT * FROM Photo WHERE photoOwner = %s ORDER BY timestamp DESC'
     cursor.execute(query, poster)
     data = cursor.fetchall()
     cursor.close()
