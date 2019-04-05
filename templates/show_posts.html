@@ -10,9 +10,14 @@
 </style>
 
 Here are posts by {{poster_name}}:
+<form action="/follow" method="GET">
 
 
+<input type="submit" name="poster" value={{line.username}}>{{line.username}}</input>
+	<br>
 
+
+</form>
 
 <table>
 	<th>Time</th>

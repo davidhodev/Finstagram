@@ -38,26 +38,17 @@ def index():
 def home():
     user = session['username']
     cursor = connection.cursor();
-    query = 'SELECT * FROM Photo ORDER BY timestamp DESC' #WHERE photoOwner = %s
+    query = 'SELECT * FROM Photo ORDER BY timestamp DESC' # Natural Join Tag GROUP BY photoID
     cursor.execute(query)
     data = cursor.fetchall()
+    query2 = 'SELECT * FROM Tag Natural Join Person'
+    cursor.execute(query2)
+    tagData = cursor.fetchall()
     cursor.close()
-    print(data)
-    return render_template('home.html', username=user, posts=data)
+    return render_template('home.html', username=user, posts=data, tagPosts = tagData)
 
-# @app.route("/upload", methods=["GET"])
-# @login_required
-# def upload():
-#     return render_template("upload.html")
 
-# @app.route("/images", methods=["GET"])
-# @login_required
-# def images():
-#     query = "SELECT * FROM photo"
-#     with connection.cursor() as cursor:
-#         cursor.execute(query)
-#     data = cursor.fetchall()
-#     return render_template("images.html", images=data)
+
 
 @app.route("/image/<image_name>", methods=["GET"])
 def image(image_name):
@@ -111,6 +102,15 @@ def loginAuth():
     error = "An unknown error has occurred. Please try again."
     return render_template("login.html", error=error)
 
+@app.route('/testSwitch', methods=['GET', 'POST'])
+def testSwitch():
+    allFollowers = request.form['allFollowers']
+    if (allFollowers == 1):
+        print(1)
+    else:
+        print(0)
+    return redirect(url_for('home'))
+
 @app.route('/post', methods=['GET', 'POST'])
 def post():
     username = session['username']
@@ -123,17 +123,15 @@ def post():
     image_file.save(filepath)
 
 
-    query = 'INSERT INTO Photo (caption, filePath, photoOwner, timestamp) VALUES(%s, %s, %s, %s)'
-    cursor.execute(query, (blog, image_name, username, time.strftime('%Y-%m-%d %H:%M:%S') ))
+
+    query = 'INSERT INTO Photo (caption, filePath, photoOwner, timestamp, allFollowers) VALUES(%s, %s, %s, %s, %s)'
+    cursor.execute(query, (blog, image_name, username, time.strftime('%Y-%m-%d %H:%M:%S'), '1' ))
     connection.commit()
     cursor.close()
     return redirect(url_for('home'))
 
 @app.route('/show_posts', methods=["GET", "POST"])
 def show_posts():
-
-
-
     poster = request.args['poster']
     cursor = connection.cursor();
     query = 'SELECT * FROM Photo WHERE photoOwner = %s ORDER BY timestamp DESC'
@@ -165,27 +163,45 @@ def registerAuth():
     error = "An error has occurred. Please try again."
     return render_template("register.html", error=error)
 
+
+@app.route("/follow", methods=["GET", "POST"])
+def follow():
+
+    username = session['username']
+    print(username)
+    # poster = request.args['poster']
+    # print(poster)
+    # # cursor = connection.cursor();
+    # print(poster)
+    # query = 'SELECT * FROM Photo WHERE photoOwner = %s ORDER BY timestamp DESC'
+    # cursor.execute(query, poster)
+    # data = cursor.fetchall()
+    # cursor.close()
+    return render_template('show_posts.html', poster_name=poster, posts=data)
+
+
+
 @app.route("/logout", methods=["GET"])
 def logout():
     session.pop("username")
     return redirect("/")
 
-@app.route("/uploadImage", methods=["POST"])
-@login_required
-def upload_image():
-    if request.files:
-        image_file = request.files.get("imageToUpload", "")
-        image_name = image_file.filename
-        filepath = os.path.join(IMAGES_DIR, image_name)
-        image_file.save(filepath)
-        query = "INSERT INTO photo (timestamp, filePath) VALUES (%s, %s)"
-        with connection.cursor() as cursor:
-            cursor.execute(query, (time.strftime('%Y-%m-%d %H:%M:%S'), image_name))
-        message = "Image has been successfully uploaded."
-        return render_template("upload.html", message=message)
-    else:
-        message = "Failed to upload image."
-        return render_template("upload.html", message=message)
+# @app.route("/uploadImage", methods=["POST"])
+# @login_required
+# def upload_image():
+#     if request.files:
+#         image_file = request.files.get("imageToUpload", "")
+#         image_name = image_file.filename
+#         filepath = os.path.join(IMAGES_DIR, image_name)
+#         image_file.save(filepath)
+#         query = "INSERT INTO photo (timestamp, filePath) VALUES (%s, %s)"
+#         with connection.cursor() as cursor:
+#             cursor.execute(query, (time.strftime('%Y-%m-%d %H:%M:%S'), image_name))
+#         message = "Image has been successfully uploaded."
+#         return render_template("upload.html", message=message)
+#     else:
+#         message = "Failed to upload image."
+#         return render_template("upload.html", message=message)
 
 if __name__ == "__main__":
     if not os.path.isdir("images"):

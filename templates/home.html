@@ -14,8 +14,23 @@
 	<h1>Welcome {{username}}</h1>
 	<input type="file" name="pic" accept="image/*" required>
 	<input type="text" name = "blog" placeholder="comment" required/> </br>
+
+	<label class="switch">
+	  <input type="checkbox" name = allFollowers> All Followers?
+	</label>
+
 	<input type="submit" value = Post />
 </form>
+<!--
+
+<form action="/testSwitch" method="POST" enctype="multipart/form-data">
+	<h1>Welcome {{username}}</h1>
+	<label class="switch">
+	  <input type="checkbox" name = allFollowers> All Followers?
+	</label>
+
+	<input type="submit" value = Post />
+</form> -->
 
 <a href="/select_blogger">Select a blogger</a>
 <br>
@@ -30,6 +45,9 @@
 
 Here are posts by {{username}}:
 
+
+
+
 <table>
 	<th>Time</th>
 	<th>photoOwner</th>
@@ -37,6 +55,8 @@ Here are posts by {{username}}:
 	<th>Caption</th>
 	<th>Photo Path</th>
 	<th>Photo</th>
+	<th>allFollowers</th>
+	<th>Tagged People </th>
 
 {% for line in posts %}
 	<tr>
@@ -46,6 +66,20 @@ Here are posts by {{username}}:
 		<td>{{line.caption}}</td>
 		<td>{{line.filePath}}</td>
 		<td><img src="/image/{{line.filePath}}" width="300"/></td>
+		<td>{{line.allFollowers}}</td>
+		<td>
+			{% for line2 in tagPosts %}
+			{% if line2.photoID == line.photoID %}
+				{{line2.fname}} {{line2.lname}}
+				<br></br>
+			{% endif %}
+			{% endfor %}
+
+
+
+
+		</td>
+
 	</tr>
 {% endfor %}
 </table>
