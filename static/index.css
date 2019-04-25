@@ -32,10 +32,9 @@
 
 
 
-#Body
 
-body{
-  background-color: #C0C0C0;
+.body a{
+  background-color:	#FFFF00;
 }
 
 .boxForLogin {

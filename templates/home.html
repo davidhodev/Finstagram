@@ -10,6 +10,21 @@
 
 
 <body>
+	<div class="header">
+		<a href="/" class="logo">Finstagram</a>
+	</div>
+	<div class = "body">
+	<form action="/searchUser" method="POST">
+		<input type="text" name = "search" placeholder="Search" required/> </br>
+		<input type="submit" value = SearchUser />
+		{% if error %}
+			<p class="error"><strong>Error:</strong> {{error}}</p>
+		{% endif %}
+	</form>
+
+
+
+
 <form action="/post" method="POST" enctype="multipart/form-data">
 	<h1>Welcome {{username}}</h1>
 	<input type="file" name="pic" accept="image/*" required>
@@ -21,21 +36,14 @@
 
 	<input type="submit" value = Post />
 </form>
-<!--
 
-<form action="/testSwitch" method="POST" enctype="multipart/form-data">
-	<h1>Welcome {{username}}</h1>
-	<label class="switch">
-	  <input type="checkbox" name = allFollowers> All Followers?
-	</label>
-
-	<input type="submit" value = Post />
-</form> -->
 
 <a href="/select_blogger">Select a blogger</a>
 <br>
 <a href="/logout">Logout</a>
-
+<br>
+<a href="/manage">Manage Followers / Tags</a>
+<br>
 
 <style type="text/css">
 	table, th, td{
@@ -74,21 +82,13 @@ Here are posts by {{username}}:
 				<br></br>
 			{% endif %}
 			{% endfor %}
-
-
-
-
 		</td>
 
 	</tr>
 {% endfor %}
 </table>
 
-
-
-
-
-
+</div>
 </body>
 
 

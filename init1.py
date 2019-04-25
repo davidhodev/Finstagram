@@ -10,6 +10,7 @@ app = Flask(__name__)
 app.secret_key = "super secret key"
 IMAGES_DIR = os.path.join(os.getcwd(), "images")
 
+# Instantiating the MySQL connections
 connection = pymysql.connect(host="localhost",
                              user="root",
                              password="root",
@@ -19,6 +20,7 @@ connection = pymysql.connect(host="localhost",
                              cursorclass=pymysql.cursors.DictCursor,
                              autocommit=True)
 
+#Making sure that the log in is required
 def login_required(f):
     @wraps(f)
     def dec(*args, **kwargs):
@@ -27,12 +29,16 @@ def login_required(f):
         return f(*args, **kwargs)
     return dec
 
+# Default page
+#Home page if logged in and index.html if not logged in
 @app.route("/")
 def index():
     if "username" in session:
         return redirect(url_for("home"))
     return render_template("index.html")
 
+# Home page that shows all available photos
+#Currently shows all photos (Need to only photos that are visibile to the logged in user.)
 @app.route("/home")
 @login_required
 def home():
@@ -41,15 +47,14 @@ def home():
     query = 'SELECT * FROM Photo ORDER BY timestamp DESC' # Natural Join Tag GROUP BY photoID
     cursor.execute(query)
     data = cursor.fetchall()
-    query2 = 'SELECT * FROM Tag Natural Join Person'
+    query2 = 'SELECT * FROM Tag Natural Join Person WHERE acceptedTag = 1'
     cursor.execute(query2)
     tagData = cursor.fetchall()
     cursor.close()
     return render_template('home.html', username=user, posts=data, tagPosts = tagData)
 
 
-
-
+#Loads the image
 @app.route("/image/<image_name>", methods=["GET"])
 def image(image_name):
     image_location = os.path.join(IMAGES_DIR, image_name)
@@ -57,7 +62,7 @@ def image(image_name):
         return send_file(image_location, mimetype="image/jpg")
 
 
-
+#Page that allows you to select the blogger
 @app.route('/select_blogger')
 @login_required
 def select_blogger():
@@ -71,6 +76,40 @@ def select_blogger():
     data = cursor.fetchall()
     cursor.close()
     return render_template('select_blogger.html', user_list=data)
+
+
+#Manage Followers and Tags
+@app.route('/manage')
+@login_required
+def manage():
+    username = session['username']
+    cursor = connection.cursor();
+    query = 'SELECT * FROM Tag NATURAL JOIN Photo WHERE acceptedTag = 0 AND username = %s'
+    cursor.execute(query, (username))
+    data = cursor.fetchall()
+    cursor.close()
+    return render_template('manage.html', tagData=data)
+
+@app.route('/tagAcceptOrDecline')
+@login_required
+def tagAcceptOrDecline():
+    username = session['username']
+    print(request.form)
+    if ("accept" in request.form):
+        print ("ACCEPTED")
+    elif ("decline" in request.form):
+        print ("DECLINED")
+    else:
+        print ("DIDN'T WORK")
+    # print("ACCEPTED TAG TEST:", acceptedTag)
+    cursor = connection.cursor();
+    query = 'SELECT * FROM Tag NATURAL JOIN Photo WHERE acceptedTag = 0 AND username = %s'
+    cursor.execute(query, (username))
+    data = cursor.fetchall()
+    cursor.close()
+    return render_template('manage.html', tagData=data)
+
+
 
 @app.route("/login", methods=["GET"])
 def login():
@@ -102,44 +141,52 @@ def loginAuth():
     error = "An unknown error has occurred. Please try again."
     return render_template("login.html", error=error)
 
-@app.route('/testSwitch', methods=['GET', 'POST'])
-def testSwitch():
-    allFollowers = request.form['allFollowers']
-    if (allFollowers == 1):
-        print(1)
-    else:
-        print(0)
-    return redirect(url_for('home'))
 
+
+# Post the image
 @app.route('/post', methods=['GET', 'POST'])
 def post():
     username = session['username']
     cursor = connection.cursor();
-    blog = request.form['blog']
+    blog = request.form['blog'] #Blog is the caption of the image
     image_file = request.files.get("pic", "")
-    print(image_file)
     image_name = image_file.filename
     filepath = os.path.join(IMAGES_DIR, image_name)
     image_file.save(filepath)
+    try:
+        #Checks to see if allFollowers box is checked.
+        # Visible to all Followers
 
+        allFollowers = request.form['allFollowers']
+        query = 'INSERT INTO Photo (caption, filePath, photoOwner, timestamp, allFollowers) VALUES(%s, %s, %s, %s, %s)'
+        cursor.execute(query, (blog, image_name, username, time.strftime('%Y-%m-%d %H:%M:%S'), '1' ))
+    except:
+        #Checks to see if allFollowers box is not checked
+        # Visible to Close Friends Group
 
+        query = 'INSERT INTO Photo (caption, filePath, photoOwner, timestamp, allFollowers) VALUES(%s, %s, %s, %s, %s)'
+        cursor.execute(query, (blog, image_name, username, time.strftime('%Y-%m-%d %H:%M:%S'), '0' ))
 
-    query = 'INSERT INTO Photo (caption, filePath, photoOwner, timestamp, allFollowers) VALUES(%s, %s, %s, %s, %s)'
-    cursor.execute(query, (blog, image_name, username, time.strftime('%Y-%m-%d %H:%M:%S'), '1' ))
     connection.commit()
     cursor.close()
     return redirect(url_for('home'))
 
+
+# Showinbg posts from a specific user
 @app.route('/show_posts', methods=["GET", "POST"])
 def show_posts():
     poster = request.args['poster']
     cursor = connection.cursor();
     query = 'SELECT * FROM Photo WHERE photoOwner = %s ORDER BY timestamp DESC'
-    cursor.execute(query, poster)
+    cursor.execute(query, (poster))
     data = cursor.fetchall()
     cursor.close()
     return render_template('show_posts.html', poster_name=poster, posts=data)
 
+
+
+
+# When you press Register
 @app.route("/registerAuth", methods=["POST"])
 def registerAuth():
     if request.form:
@@ -149,7 +196,6 @@ def registerAuth():
         hashedPassword = hashlib.sha256(plaintextPasword.encode("utf-8")).hexdigest()
         firstName = requestData["fname"]
         lastName = requestData["lname"]
-
         try:
             with connection.cursor() as cursor:
                 query = "INSERT INTO Person (username, password, fname, lname) VALUES (%s, %s, %s, %s)"
@@ -163,21 +209,25 @@ def registerAuth():
     error = "An error has occurred. Please try again."
     return render_template("register.html", error=error)
 
-
+#
 @app.route("/follow", methods=["GET", "POST"])
 def follow():
-
     username = session['username']
     print(username)
-    # poster = request.args['poster']
-    # print(poster)
-    # # cursor = connection.cursor();
-    # print(poster)
-    # query = 'SELECT * FROM Photo WHERE photoOwner = %s ORDER BY timestamp DESC'
-    # cursor.execute(query, poster)
-    # data = cursor.fetchall()
-    # cursor.close()
-    return render_template('show_posts.html', poster_name=poster, posts=data)
+    poster = request.args['poster']
+    print(poster)
+
+    cursor = connection.cursor();
+    if (username != poster):
+        query = 'INSERT INTO Follow (followerUsername, followeeUsername, acceptedfollow) VALUES(%s, %s, %s)'
+        cursor.execute(query, (username, poster, 0))
+    else:
+        print("ERROR. TRYING TO FOLLOW YOURSELF!")
+
+    connection.commit()
+    cursor.close()
+    return redirect(url_for('home'))
+    # return render_template('show_posts.html', poster_name=poster, posts=data)
 
 
 
@@ -186,22 +236,6 @@ def logout():
     session.pop("username")
     return redirect("/")
 
-# @app.route("/uploadImage", methods=["POST"])
-# @login_required
-# def upload_image():
-#     if request.files:
-#         image_file = request.files.get("imageToUpload", "")
-#         image_name = image_file.filename
-#         filepath = os.path.join(IMAGES_DIR, image_name)
-#         image_file.save(filepath)
-#         query = "INSERT INTO photo (timestamp, filePath) VALUES (%s, %s)"
-#         with connection.cursor() as cursor:
-#             cursor.execute(query, (time.strftime('%Y-%m-%d %H:%M:%S'), image_name))
-#         message = "Image has been successfully uploaded."
-#         return render_template("upload.html", message=message)
-#     else:
-#         message = "Failed to upload image."
-#         return render_template("upload.html", message=message)
 
 if __name__ == "__main__":
     if not os.path.isdir("images"):

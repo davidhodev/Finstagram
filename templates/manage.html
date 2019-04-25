@@ -1,0 +1,29 @@
+<html>
+<head>
+</head>
+<body>
+
+
+Manage Tags
+<br>
+
+<form action="/tagAcceptOrDecline" method="GET, POST">
+
+
+{% for line in tagData %}
+<input type="radio" name="photoID" value={{line.photoID}}>{{line.photoID}}</input>
+	<br>
+{% endfor %}
+	<input type="submit" name = 'accept' value = "accept" />
+	<input type="submit" name = 'decline' value = "decline" />
+</form>
+
+
+
+
+<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>

@@ -10,42 +10,63 @@
 </style>
 
 Here are posts by {{poster_name}}:
+<br>
+<br>
+
 <form action="/follow" method="GET">
-
-
-<input type="submit" name="poster" value={{line.username}}>{{line.username}}</input>
-	<br>
-
-
+	<input type="text" name = "poster" value ={{poster_name}}> </input>
+	<input type="submit" value = "Follow User" />
 </form>
 
-<table>
-	<th>Time</th>
-	<th>photoOwner</th>
-	<th>PhotoID</th>
-	<th>Caption</th>
-	<th>Photo</th>
 
-{% for line in posts %}
-	<tr>
-		<td>{{line.timestamp}}</td>
-		<td>{{line.photoOwner}}</td>
-		<td>{{line.photoID}}</td>
-		<td>{{line.caption}}</td>
-		<td>{{line.filePath}}</td>
-	</tr>
-{% endfor %}
-</table>
 
-<br>
-<br>
-<a href="/select_blogger">Select another blogger</a>
-<br>
-<br>
-<a href="/home">Post a message</a>
-<br>
-<br>
-<a href="/logout">Logout</a>
+
+	<table>
+		<th>Time</th>
+		<th>photoOwner</th>
+		<th>PhotoID</th>
+		<th>Caption</th>
+		<th>Photo Path</th>
+		<th>Photo</th>
+		<th>allFollowers</th>
+		<th>Tagged People </th>
+
+	{% for line in posts %}
+		<tr>
+			<td>{{line.timestamp}}</td>
+			<td>{{line.photoOwner}}</td>
+			<td>{{line.photoID}}</td>
+			<td>{{line.caption}}</td>
+			<td>{{line.filePath}}</td>
+			<td><img src="/image/{{line.filePath}}" width="300"/></td>
+			<td>{{line.allFollowers}}</td>
+			<td>
+				{% for line2 in tagPosts %}
+				{% if line2.photoID == line.photoID %}
+					{{line2.fname}} {{line2.lname}}
+					<br></br>
+				{% endif %}
+				{% endfor %}
+
+
+
+
+			</td>
+
+		</tr>
+	{% endfor %}
+	</table>
+
+
+	<br>
+	<br>
+	<a href="/select_blogger">Select another blogger</a>
+	<br>
+	<br>
+	<a href="/home">Post a message</a>
+	<br>
+	<br>
+	<a href="/logout">Logout</a>
 
 </body>
 
