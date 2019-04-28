@@ -14,12 +14,15 @@
 		<a href="/" class="logo">Finstagram</a>
 	</div>
 	<div class = "body">
-	<form action="/searchUser" method="POST">
-		<input type="text" name = "search" placeholder="Search" required/> </br>
-		<input type="submit" value = SearchUser />
+
+
+
+	<!-- <form action="/follow" method="POST">
+		<input type="text" name = "poster" placeholder="Follow User?" required/> </br>
+		<input type="submit" value = follow />
 		{% if error %}
 			<p class="error"><strong>Error:</strong> {{error}}</p>
-		{% endif %}
+		{% endif %} -->
 	</form>
 
 
@@ -30,9 +33,13 @@
 	<input type="file" name="pic" accept="image/*" required>
 	<input type="text" name = "blog" placeholder="comment" required/> </br>
 
-	<label class="switch">
-	  <input type="checkbox" name = allFollowers> All Followers?
-	</label>
+	<input type="radio" name = 'groupName' value = allFollowers > All Followers?
+	<br>
+	{% for line in closeFriendsGroupNameData %}
+	<input type="radio" name="groupName" value={{line.groupName}}>{{line.groupName}}</input>
+	<input type="hidden" name = "groupOwner" value = {{line.groupOwner}}></input>
+		<br>
+	{% endfor %}
 
 	<input type="submit" value = Post />
 </form>
@@ -51,6 +58,43 @@
 	}
 </style>
 
+CLOSE FRIENDS GROUPS:
+
+
+<table>
+	<th>Group Name</th>
+	<th>Members</th>
+	<th>Add Member </th>
+
+{% for line in closeFriendsGroupNameData %}
+	<tr>
+		<td>{{line.groupName}}</td>
+		<td>
+			{% for line2 in closeFriendsData %}
+			{% if line2.groupName == line.groupName %}
+				{{line2.username}}
+			{% endif %}
+			{% endfor %}
+		</td>
+		<td>
+			<form action="/addMember" method="POST">
+				<input type="text" name = "addGroupMember" placeholder="Add A Group Member" required/> </br>
+				<input type="hidden" name = "groupName" value="{{line.groupName}}"/>
+				<input type="submit" value = addMemberSubmit />
+				{% if error %}
+					<p class="error"><strong>Error:</strong> {{error}}</p>
+				{% endif %}
+			</form>
+		</td>
+
+	</tr>
+{% endfor %}
+</table>
+
+<br>
+<br>
+
+
 Here are posts by {{username}}:
 
 
@@ -65,6 +109,7 @@ Here are posts by {{username}}:
 	<th>Photo</th>
 	<th>allFollowers</th>
 	<th>Tagged People </th>
+	<th>Add Tag </th>
 
 {% for line in posts %}
 	<tr>
@@ -83,10 +128,21 @@ Here are posts by {{username}}:
 			{% endif %}
 			{% endfor %}
 		</td>
+		<td>
+			<form action="/tagUser" method="POST">
+				<input type="text" name = "tagPerson" placeholder="Tag Someone" required/> </br>
+				<input type="hidden" name = "photoID" value="{{line.photoID}}"/>
+				<input type="submit" value = tagPersonButtonSubmit />
+				{% if error %}
+					<p class="error"><strong>Error:</strong> {{error}}</p>
+				{% endif %}
+			</form>
+		</td>
 
 	</tr>
 {% endfor %}
 </table>
+
 
 </div>
 </body>

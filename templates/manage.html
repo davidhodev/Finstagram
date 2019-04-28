@@ -7,20 +7,31 @@
 Manage Tags
 <br>
 
-<form action="/tagAcceptOrDecline" method="GET, POST">
+<form action="/tagAcceptOrDecline" method="POST">
 
 
 {% for line in tagData %}
 <input type="radio" name="photoID" value={{line.photoID}}>{{line.photoID}}</input>
 	<br>
 {% endfor %}
-	<input type="submit" name = 'accept' value = "accept" />
-	<input type="submit" name = 'decline' value = "decline" />
+	<input type="submit" name = 'tagButton' value = "accept" />
+	<input type="submit" name = 'tagButton' value = "decline" />
 </form>
 
 
+<form action="/followAcceptOrDecline" method = "POST">
+	MANAGE FOLLOWERS
+	{% for line in requestData %}
+	<input type="radio" name="followerName" value={{line.followerUsername}}>{{line.followerUsername}}</input>
+		<br>
+	{% endfor %}
+		<input type="submit" name = 'followButton' value = "accept" />
+		<input type="submit" name = 'followButton' value = "decline" />
+</form>
 
 
+<a href="/home"> HOME </a>
+<br>
 <a href="/logout">Logout</a>
 
 </body>

@@ -44,14 +44,25 @@ def index():
 def home():
     user = session['username']
     cursor = connection.cursor();
-    query = 'SELECT * FROM Photo ORDER BY timestamp DESC' # Natural Join Tag GROUP BY photoID
-    cursor.execute(query)
+    query = 'SELECT timestamp, photoOwner, photoID, caption, Photo.filePath, allFollowers FROM Photo Natural Join Share Natural Join BELONG WHERE username = %s UNION SELECT timestamp, photoOwner, photoID, caption, Photo.filePath, allFollowers From Photo Join Follow On (Photo.photoOwner = Follow.followeeUsername) WHERE (followerUsername = %s AND acceptedFollow = 1) ORDER BY timestamp DESC' # Natural Join Tag GROUP BY photoID
+    cursor.execute(query, (user, user))
     data = cursor.fetchall()
     query2 = 'SELECT * FROM Tag Natural Join Person WHERE acceptedTag = 1'
     cursor.execute(query2)
     tagData = cursor.fetchall()
+
+
+    closeFriendsGroupNameQuery = 'SELECT DISTINCT groupName, groupOwner FROM CloseFriendGroup WHERE groupOwner = %s'
+    cursor.execute(closeFriendsGroupNameQuery, (user))
+    closeFriendsGroupNameData = cursor.fetchall()
+
+    closeFriendsQuery = 'SELECT * FROM Belong Natural Join CloseFriendGroup WHERE groupOwner = %s'
+    cursor.execute(closeFriendsQuery, (user))
+    closeFriendsData = cursor.fetchall()
+
+
     cursor.close()
-    return render_template('home.html', username=user, posts=data, tagPosts = tagData)
+    return render_template('home.html', username=user, posts=data, tagPosts = tagData, closeFriendsData = closeFriendsData, closeFriendsGroupNameData = closeFriendsGroupNameData)
 
 
 #Loads the image
@@ -87,29 +98,118 @@ def manage():
     query = 'SELECT * FROM Tag NATURAL JOIN Photo WHERE acceptedTag = 0 AND username = %s'
     cursor.execute(query, (username))
     data = cursor.fetchall()
-    cursor.close()
-    return render_template('manage.html', tagData=data)
 
-@app.route('/tagAcceptOrDecline')
+    query2 = 'SELECT * FROM Follow WHERE acceptedFollow = 0 AND followeeUsername = %s'
+    cursor.execute(query2, (username))
+    requestData = cursor.fetchall()
+
+
+    cursor.close()
+    return render_template('manage.html', tagData=data, requestData = requestData)
+
+@app.route('/tagUser', methods = ["GET", "POST"])
+@login_required
+def tagUser():
+    username = session['username']
+    taggedPerson = request.form['tagPerson']
+    photoID = request.form['photoID']
+    print(request.form['photoID'])
+    print(request.form['tagPerson'])
+    cursor = connection.cursor();
+    if taggedPerson == username:
+        tagQuery = 'INSERT INTO Tag (username, photoID, acceptedTag) VALUES (%s, %s, %s)'
+        cursor.execute(tagQuery, (taggedPerson, photoID, 1))
+    else:
+        try:
+            tagQuery = 'INSERT INTO Tag (username, photoID, acceptedTag) VALUES (%s, %s, %s)'
+            cursor.execute(tagQuery, (taggedPerson, photoID, 0))
+        except pymysql.err.IntegrityError:
+            print("Username not found!")
+
+    connection.commit()
+    cursor.close()
+    return redirect(url_for('home'))
+
+
+@app.route('/addMember', methods = ["GET", "POST"])
+@login_required
+def addMember():
+    username = session['username']
+    groupName = request.form['groupName']
+    newGroupMember = request.form['addGroupMember']
+    cursor = connection.cursor();
+    try:
+        tagQuery = 'INSERT INTO Belong (groupName, groupOwner, username) VALUES (%s, %s, %s)'
+        cursor.execute(tagQuery, (groupName, username, newGroupMember))
+    except pymysql.err.IntegrityError:
+        print("Username not found!")
+
+    connection.commit()
+    cursor.close()
+    return redirect(url_for('home'))
+
+@app.route('/tagAcceptOrDecline', methods = ["GET", "POST"])
 @login_required
 def tagAcceptOrDecline():
     username = session['username']
-    print(request.form)
-    if ("accept" in request.form):
+    photoID = request.form['photoID']
+    jsonData = request.get_json()
+    print(jsonData)
+    print(photoID)
+    print(request.form["tagButton"])
+    if (request.form["tagButton"] == "accept"):
         print ("ACCEPTED")
-    elif ("decline" in request.form):
+        updateTagQuery = 'UPDATE Tag SET acceptedTag = 1 WHERE username = %s AND photoID = %s'
+
+    elif (request.form["tagButton"] == "decline"):
         print ("DECLINED")
+        updateTagQuery = 'DELETE FROM Tag WHERE username = %s AND photoID = %s'
     else:
         print ("DIDN'T WORK")
     # print("ACCEPTED TAG TEST:", acceptedTag)
     cursor = connection.cursor();
-    query = 'SELECT * FROM Tag NATURAL JOIN Photo WHERE acceptedTag = 0 AND username = %s'
-    cursor.execute(query, (username))
+    cursor.execute(updateTagQuery, (username, photoID))
     data = cursor.fetchall()
+
+    query2 = 'SELECT * FROM Follow WHERE acceptedFollow = 0 AND followeeUsername = %s'
+    cursor.execute(query2, (username))
+    requestData = cursor.fetchall()
+
+
     cursor.close()
-    return render_template('manage.html', tagData=data)
+    return render_template('manage.html', tagData=data, requestData = requestData)
 
 
+@app.route('/followAcceptOrDecline', methods = ["GET", "POST"])
+@login_required
+def followAcceptOrDecline():
+    username = session['username']
+    followerName = request.form['followerName']
+    print(request.form["followButton"])
+    if (request.form["followButton"] == "accept"):
+        print ("ACCEPTED")
+        updateFollowQuery = 'UPDATE Follow SET acceptedFollow = 1 WHERE followeeUsername = %s AND followerUsername = %s'
+        cursor = connection.cursor();
+        cursor.execute(updateFollowQuery, (username, followerName))
+
+    elif (request.form["followButton"] == "decline"):
+        print ("DECLINED")
+        updateFollowQuery = 'DELETE FROM Follow WHERE followeeUsername = %s'
+        cursor = connection.cursor();
+        cursor.execute(updateFollowQuery, (username))
+    else:
+        print ("DIDN'T WORK")
+    # print("ACCEPTED TAG TEST:", acceptedTag)
+
+    data = cursor.fetchall()
+
+    query2 = 'SELECT * FROM Follow WHERE acceptedFollow = 0 AND followeeUsername = %s'
+    cursor.execute(query2, (username))
+    requestData = cursor.fetchall()
+
+
+    cursor.close()
+    return render_template('manage.html', tagData=data, requestData = requestData)
 
 @app.route("/login", methods=["GET"])
 def login():
@@ -147,25 +247,35 @@ def loginAuth():
 @app.route('/post', methods=['GET', 'POST'])
 def post():
     username = session['username']
+    groupName = request.form['groupName']
+    groupOwner = request.form['groupOwner']
     cursor = connection.cursor();
     blog = request.form['blog'] #Blog is the caption of the image
     image_file = request.files.get("pic", "")
     image_name = image_file.filename
     filepath = os.path.join(IMAGES_DIR, image_name)
     image_file.save(filepath)
-    try:
+    if (groupName == "allFollowers"):
         #Checks to see if allFollowers box is checked.
         # Visible to all Followers
-
-        allFollowers = request.form['allFollowers']
-        query = 'INSERT INTO Photo (caption, filePath, photoOwner, timestamp, allFollowers) VALUES(%s, %s, %s, %s, %s)'
+        query = 'INSERT INTO Photo (caption, filePath, photoOwner, timestamp, allFollowers) VALUES (%s, %s, %s, %s, %s)'
         cursor.execute(query, (blog, image_name, username, time.strftime('%Y-%m-%d %H:%M:%S'), '1' ))
-    except:
+    else:
         #Checks to see if allFollowers box is not checked
         # Visible to Close Friends Group
 
-        query = 'INSERT INTO Photo (caption, filePath, photoOwner, timestamp, allFollowers) VALUES(%s, %s, %s, %s, %s)'
-        cursor.execute(query, (blog, image_name, username, time.strftime('%Y-%m-%d %H:%M:%S'), '0' ))
+        query = 'INSERT INTO Photo (caption, filePath, photoOwner, timestamp, allFollowers) VALUES (%s, %s, %s, %s, %s)'
+        cursor.execute(query, (blog, image_name, username, time.strftime('%Y-%m-%d %H:%M:%S'), '0'))
+
+        photoIDQuery = 'SELECT max(photoID) FROM Photo'
+        cursor.execute(photoIDQuery)
+        maxPhotoId = cursor.fetchall()
+        print(maxPhotoId)
+        print(maxPhotoId[0].get('max(photoID)'))
+        maxPhotoId = maxPhotoId[0].get('max(photoID)')
+
+        query2 = 'INSERT INTO Share (groupName, groupOwner, photoID) VALUES(%s, %s, %s)'
+        cursor.execute(query2, (groupName, groupOwner, maxPhotoId))
 
     connection.commit()
     cursor.close()
@@ -219,8 +329,11 @@ def follow():
 
     cursor = connection.cursor();
     if (username != poster):
-        query = 'INSERT INTO Follow (followerUsername, followeeUsername, acceptedfollow) VALUES(%s, %s, %s)'
-        cursor.execute(query, (username, poster, 0))
+        try:
+            query = 'INSERT INTO Follow (followerUsername, followeeUsername, acceptedfollow) VALUES(%s, %s, %s)'
+            cursor.execute(query, (username, poster, 0))
+        except pymysql.err.IntegrityError:
+            print("Could not find username")
     else:
         print("ERROR. TRYING TO FOLLOW YOURSELF!")
 
