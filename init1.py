@@ -285,14 +285,17 @@ def post():
 # Showinbg posts from a specific user
 @app.route('/show_posts', methods=["GET", "POST"])
 def show_posts():
-    poster = request.args['poster']
-    cursor = connection.cursor();
-    query = 'SELECT * FROM Photo WHERE photoOwner = %s ORDER BY timestamp DESC'
-    cursor.execute(query, (poster))
-    data = cursor.fetchall()
-    cursor.close()
-    return render_template('show_posts.html', poster_name=poster, posts=data)
-
+    poster = request.form['poster']
+    try:
+        cursor = connection.cursor();
+        query = 'SELECT * FROM Photo WHERE photoOwner = %s ORDER BY timestamp DESC'
+        cursor.execute(query, (poster))
+        data = cursor.fetchall()
+        cursor.close()
+        return render_template('show_posts.html', poster_name=poster, posts=data)
+    except:
+        print("USER NOT FOUND!")
+        return redirect(url_for('home'))
 
 
 
